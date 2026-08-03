@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decklist Converter</title>
+<style>
+  :root{
+    --bg: #d7dee8;
+    --panel: #ffffff;
+    --panel-alt: #eaeff6;
+    --border: #c7cfdb;
+    --border-strong: #a3aebf;
+    --text: #1f2226;
+    --text-muted: #565d6b;
+    --accent: #415db8;
+    --accent-hover: #344a92;
+    --accent-contrast: #ffffff;
+    --flag-bg: #fbdde4;
+    --flag-text: #99334d;
+    --good: #2f8f52;
+    --bad: #c23b3b;
+    --box-bg: #ebeff5;
+    --header-bg: #ffffff;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  html[data-theme="dark"]{
+    --bg: #0f1720;
+    --panel: #16212c;
+    --panel-alt: #1c2b38;
+    --border: #2a3a48;
+    --border-strong: #3a4d5e;
+    --text: #e6edf3;
+    --text-muted: #8fa3b3;
+    --accent: #4e93f7;
+    --accent-hover: #6fa8f9;
+    --accent-contrast: #ffffff;
+    --flag-bg: #4a1f2c;
+    --flag-text: #f0a8bb;
+    --good: #6fbd85;
+    --bad: #d97a7a;
+    --box-bg: #1c2b38;
+    --header-bg: #16212c;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 26px 22px 50px; }
+
+  header.top {
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .top-inner {
+    max-width: 1200px; margin: 0 auto; padding: 18px 22px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+  }
+  header.top h1 {
+    font-size: 1.65rem; margin: 0; font-weight: 700; letter-spacing: -0.01em;
+  }
+  .header-right { display: flex; align-items: center; gap: 14px; }
+
+  .tooltip-group { position: relative; display: flex; align-items: center; gap: 7px; }
+  .tooltip-group .label { font-size: 0.95rem; color: var(--text); }
+  .info-icon {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 1.5px solid var(--border-strong); background: var(--panel);
+    color: var(--text-muted); font-weight: 700; font-size: 0.85rem;
+    display: flex; align-items: center; justify-content: center; cursor: default;
+  }
+  .tooltip-group:hover .info-icon, .tooltip-group:focus-within .info-icon { border-color: var(--accent); color: var(--accent); }
+  .tooltip-box {
+    position: absolute; top: 32px; right: 0; width: 280px;
+    background: var(--panel); border: 1px solid var(--border-strong); border-radius: 10px;
+    padding: 14px 16px; font-size: 0.9rem; color: var(--text);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+    opacity: 0; visibility: hidden; transform: translateY(-4px);
+    transition: opacity 0.12s ease, transform 0.12s ease; z-index: 40;
+  }
+  .tooltip-group:hover .tooltip-box, .tooltip-group:focus-within .tooltip-box {
+    opacity: 1; visibility: visible; transform: translateY(0);
+  }
+  .tooltip-box ul { margin: 6px 0 0; padding-left: 18px; }
+  .tooltip-box li { margin-bottom: 4px; }
+
+  .theme-toggle {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--panel); border: 1.5px solid var(--border-strong);
+    font-size: 1rem; cursor: pointer; color: var(--text);
+    display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+  .layout {
+    display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: 15px; align-items: start;
+  }
+  @media (max-width: 860px){
+    .layout { grid-template-columns: 1fr; }
+    .convert-col { width: 100% !important; align-items: center; }
+    .convert-box { width: 100%; }
+    .fmt-buttons { flex-direction: row !important; width: 100% !important; }
+    .fmt-buttons .fmt-btn { flex: 1; }
+    .mini-toggles { flex-direction: row !important; width: 100% !important; flex-wrap: wrap; justify-content: center; }
+  }
+
+  .panel {
+    display: flex; flex-direction: column; min-width: 0;
+    padding: 0 10px;
+  }
+  .panel h2, .convert-col h2 {
+    font-size: 1.05rem; margin: 0 0 14px; font-weight: 600; color: var(--text);
+    align-self: center; text-align: center;
+  }
+  textarea {
+    width: 100%; min-height: 400px; resize: vertical;
+    font-family: var(--sans); font-size: 1rem;
+    border: 1px solid var(--border-strong); border-radius: 12px;
+    padding: 12px 14px; background: var(--panel-alt); color: var(--text);
+    scrollbar-width: thin; scrollbar-color: var(--border-strong) var(--panel-alt);
+  }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  textarea::-webkit-scrollbar { width: 11px; }
+  textarea::-webkit-scrollbar-track {
+    background: var(--panel-alt); border-radius: 12px; margin: 6px 0;
+  }
+  textarea::-webkit-scrollbar-thumb {
+    background: var(--border-strong); border-radius: 12px;
+    border: 2px solid var(--panel-alt); background-clip: padding-box;
+  }
+  textarea::-webkit-scrollbar-thumb:hover { background: var(--accent); background-clip: padding-box; }
+
+  .summary {
+    margin-top: 12px; font-size: 0.98rem; color: var(--text-muted);
+    display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; min-height: 24px;
+  }
+  .summary strong { color: var(--text); }
+  .flag-count { background: var(--flag-bg); color: var(--flag-text); padding: 1px 7px; border-radius: 5px; font-weight: 700; }
+
+  .commander-row {
+    margin-top: 10px; display: flex; align-items: center; gap: 8px; font-size: 0.98rem; flex-wrap: wrap; min-height: 34px;
+  }
+  .commander-row select {
+    font-family: var(--sans); font-size: 0.98rem; padding: 7px 9px; border-radius: 6px;
+    border: 1px solid var(--border-strong); background: var(--panel-alt); color: var(--text); max-width: 100%;
+  }
+
+  details.warnings { margin-top: 10px; font-size: 0.92rem; }
+  details.warnings summary { cursor: pointer; color: var(--text-muted); }
+  details.warnings pre {
+    white-space: pre-wrap; background: var(--panel-alt); border: 1px solid var(--border);
+    padding: 9px 11px; border-radius: 6px; margin-top: 8px; font-family: var(--sans); font-size: 0.9rem;
+  }
+
+  .convert-col {
+    display: flex; flex-direction: column; gap: 10px; width: 182px; min-width: 0;
+  }
+  .convert-box {
+    background: var(--box-bg); border-radius: 14px; padding: 18px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .fmt-buttons {
+    display: flex; flex-direction: column; justify-content: flex-start; gap: 10px;
+  }
+  .mini-toggles {
+    display: flex; flex-direction: column; gap: 8px; align-items: flex-start; margin-top: 18px;
+  }
+  .toggle-pill {
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer; font-size: 0.95rem; user-select: none; color: var(--text);
+    white-space: nowrap;
+  }
+  .toggle-pill input {
+    width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex: none;
+  }
+  .fmt-btn {
+    background: var(--panel); border: 1.5px solid var(--border-strong); border-radius: 9px;
+    padding: 12px 14px; font-size: 0.97rem; cursor: pointer; color: var(--text); font-weight: 600;
+    text-align: center; white-space: nowrap;
+  }
+  .fmt-btn:hover { border-color: var(--accent); }
+  .fmt-btn.active { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+
+  .output-footer { margin-top: 12px; }
+  .copy-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .copied-msg { font-size: 0.92rem; color: var(--good); visibility: hidden; }
+  .copied-msg.show { visibility: visible; }
+
+  .dck-group { display: none; }
+  .dck-group.show { display: contents; }
+  #deckNameInput {
+    flex: 2 1 170px; min-width: 140px; padding: 9px 11px; border-radius: 8px;
+    border: 1.5px solid var(--border-strong); font-family: var(--sans); font-size: 0.95rem;
+    background: var(--panel-alt); color: var(--text);
+  }
+  #downloadBtn { margin-left: auto; }
+
+  .btn-primary {
+    background: var(--accent); color: var(--accent-contrast); border: none; border-radius: 8px;
+    padding: 10px 18px; font-size: 0.98rem; font-weight: 700; cursor: pointer;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-secondary {
+    background: var(--panel); color: var(--text); border: 1.5px solid var(--border-strong); border-radius: 8px;
+    padding: 9px 16px; font-size: 0.95rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  .btn-secondary:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .btn-secondary:disabled { color: var(--text-muted); cursor: not-allowed; opacity: 0.6; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <h1>Decklist Converter</h1>
+    <div class="header-right">
+      <div class="tooltip-group" tabindex="0">
+        <span class="label">Offline app</span>
+        <span class="info-icon">i</span>
+        <div class="tooltip-box">
+          Runs entirely in your browser — nothing is uploaded or sent anywhere.
+          <ul>
+            <li>Paste from Moxfield, Archidekt, TappedOut, EDHREC, or Forge.</li>
+            <li>Sections and commander are detected automatically; override the commander below the input.</li>
+            <li>Single-slash and double-slash double-faced cards are normalized automatically.</li>
+          </ul>
+        </div>
+      </div>
+      <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">🌙</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="layout">
+    <div class="panel">
+      <h2>Paste decklist</h2>
+      <textarea id="input" placeholder="Paste from Moxfield, Archidekt, TappedOut, EDHREC, or Forge…"></textarea>
+      <div class="summary" id="summary"></div>
+      <div class="commander-row" id="commanderRow" style="display:none;">
+        <span>Commander:</span>
+        <select id="commanderSelect"></select>
+      </div>
+      <details class="warnings" id="warningsBox" style="display:none;">
+        <summary>Lines not recognized</summary>
+        <pre id="warningsText"></pre>
+      </details>
+    </div>
+
+    <div class="convert-col">
+      <h2>Convert to</h2>
+      <div class="convert-box">
+        <div class="fmt-buttons">
+          <button class="fmt-btn active" data-fmt="plain">Plain</button>
+          <button class="fmt-btn" data-fmt="forge-paste">Forge (Editor)</button>
+          <button class="fmt-btn" data-fmt="forge-dck">Forge (.dck)</button>
+        </div>
+        <div class="mini-toggles">
+          <label class="toggle-pill"><input type="checkbox" id="optKeepPrint" checked> Keep printings</label>
+          <label class="toggle-pill"><input type="checkbox" id="optIncludeSideboard" checked> Keep sideboard</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Converted list</h2>
+      <textarea id="output" readonly placeholder="Choose a format to see the converted list here…"></textarea>
+      <div class="output-footer">
+        <div class="copy-row">
+          <button class="btn-primary" id="copyBtn">Copy</button>
+          <span class="copied-msg" id="copiedMsg">Copied!</span>
+          <span class="dck-group" id="dckGroup">
+            <input type="text" id="deckNameInput" placeholder="Deck name for Forge">
+            <button class="btn-secondary" id="downloadBtn" disabled>Download .dck</button>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const SECTION_ALIASES = {
+    'commander':'commander', 'commanders':'commander', 'command zone':'commander', 'commandzone':'commander',
+    'main':'main', 'maindeck':'main', 'deck':'main', 'mainboard':'main', 'library':'main', 'main deck':'main',
+    'sideboard':'sideboard', 'side':'sideboard', 'side board':'sideboard',
+    'considering':'considering', 'maybeboard':'considering', 'maybe board':'considering', 'maybe':'considering',
+    'tokens':'tokens', 'token':'tokens',
+    'companion':'companion'
+  };
+  const BASIC_LANDS = new Set([
+    'plains','island','swamp','mountain','forest','wastes',
+    'snow-covered plains','snow-covered island','snow-covered swamp','snow-covered mountain','snow-covered forest'
+  ]);
+  const STORAGE_PREFIX = 'mdc_';
+
+  function saveSetting(key, val){
+    try { localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(val)); } catch(e){ /* storage unavailable */ }
+  }
+  function loadSetting(key, fallback){
+    try {
+      const v = localStorage.getItem(STORAGE_PREFIX + key);
+      return v === null ? fallback : JSON.parse(v);
+    } catch(e){ return fallback; }
+  }
+
+  function detectHeader(line){
+    let s = line.trim();
+    if(!s) return null;
+    let m = s.match(/^\[(.+?)\]$/);
+    if(m) s = m[1].trim();
+    s = s.replace(/\s*[:\-]?\s*\(\d+\)\s*$/, '').trim();
+    s = s.replace(/:\s*$/, '').trim();
+    let key = s.toLowerCase();
+    if(SECTION_ALIASES.hasOwnProperty(key)) return SECTION_ALIASES[key];
+    return null;
+  }
+
+  function normalizeSlash(name){
+    if(name.indexOf(' // ') !== -1) return name;
+    let m = name.match(/^(.+?)\s*\/\/?\s*(.+)$/);
+    if(m && m[1].trim().length > 0 && m[2].trim().length > 0){
+      return m[1].trim() + ' // ' + m[2].trim();
+    }
+    return name;
+  }
+
+  function parseCardLine(raw){
+    let line = raw.trim();
+    if(!line) return null;
+
+    // Forge's own pipe format (Name|SET|[CN]) must be checked before generic bracket
+    // stripping below, since its trailing [CN] would otherwise be mistaken for an
+    // Archidekt-style category tag like [Ramp] and get discarded.
+    let pipeMatch = line.match(/^(\d+)\s+(.+?)\s*\|\s*([A-Za-z0-9]{2,5})\s*\|\s*\[?([\w\-]*)\]?\s*$/);
+    if(pipeMatch){
+      const qty = parseInt(pipeMatch[1],10);
+      const name = normalizeSlash(pipeMatch[2].trim());
+      const set = pipeMatch[3].toUpperCase();
+      const cn = (pipeMatch[4]||'').trim();
+      if(!name) return { unparsed: true, raw: raw };
+      return { qty: qty, name: name, set: set, cn: cn, isCommanderTag: false, raw: raw };
+    }
+
+    let categoryTag = '';
+    let tagMatch = line.match(/\s*\[([^\]]+)\]\s*$/);
+    if(tagMatch){ categoryTag = tagMatch[1]; line = line.slice(0, tagMatch.index).trim(); }
+
+    line = line.replace(/\s*\*F\*\s*$/i, '').replace(/\s*\(F\)\s*$/i, '').replace(/\s*\+\s*$/, '');
+    if(!line) return null;
+
+    let qty = 1, name = '', set = '', cn = '';
+    let m;
+
+    m = line.match(/^(\d+)x?\s+(.+?)\s*\(([A-Za-z0-9]{2,5})\)\s*([A-Za-z0-9\-★]*)\s*$/);
+    if(m){
+      qty = parseInt(m[1],10); name = m[2].trim(); set = m[3].toUpperCase(); cn = (m[4]||'').trim();
+    } else {
+      m = line.match(/^(\d+)x?\s+(.+)$/);
+      if(m){
+        qty = parseInt(m[1],10); name = m[2].trim();
+      } else if(/^[A-Za-z]/.test(line) && line.length < 140 && !/^https?:\/\//i.test(line)){
+        qty = 1; name = line.trim();
+      } else {
+        return { unparsed: true, raw: raw };
+      }
+    }
+
+    if(!name) return { unparsed: true, raw: raw };
+    name = normalizeSlash(name);
+    const isCommanderTag = /commander/i.test(categoryTag);
+    return { qty: qty, name: name, set: set, cn: cn, isCommanderTag: isCommanderTag, raw: raw };
+  }
+
+  function parseDecklist(text){
+    const lines = text.split(/\r?\n/);
+    let currentSection = 'main';
+    let inMetadata = false;
+    let deckName = '';
+    let cards = { commander: [], main: [], sideboard: [], considering: [], tokens: [], companion: [] };
+    let unparsedLines = [];
+
+    for(let raw of lines){
+      let line = raw.trim();
+      if(!line) continue;
+
+      if(/^\[metadata\]$/i.test(line)){ inMetadata = true; continue; }
+
+      let bm = line.match(/^\[(.+?)\]$/);
+      if(bm){
+        inMetadata = false;
+        let sec = detectHeader(line);
+        if(sec){ currentSection = sec; }
+        continue;
+      }
+
+      if(inMetadata){
+        let nm = line.match(/^name\s*=\s*(.+)$/i);
+        if(nm) deckName = nm[1].trim();
+        continue;
+      }
+
+      let dn = line.match(/^(deck|name)\s*[:=]\s*(.+)$/i);
+      if(dn){ deckName = dn[2].trim(); continue; }
+
+      let sec2 = detectHeader(line);
+      if(sec2){ currentSection = sec2; continue; }
+
+      let parsed = parseCardLine(line);
+      if(!parsed) continue;
+      if(parsed.unparsed){ unparsedLines.push(parsed.raw); continue; }
+
+      let sec = parsed.isCommanderTag ? 'commander' : currentSection;
+      cards[sec] = cards[sec] || [];
+      cards[sec].push(parsed);
+    }
+
+    // always attempt to auto-fill a commander if none was explicitly marked
+    let commanderAssumed = false;
+    if(cards.commander.length === 0 && cards.main.length > 0){
+      let c = cards.main.shift();
+      cards.commander.push(c);
+      commanderAssumed = true;
+    }
+
+    return { cards: cards, deckName: deckName, unparsedLines: unparsedLines, commanderAssumed: commanderAssumed };
+  }
+
+  function sortCards(list){
+    return list.slice().sort((a,b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+  }
+
+  function formatLine(card, style, keepPrint){
+    if(style === 'forgepipe'){
+      if(keepPrint && card.set) return card.qty + ' ' + card.name + '|' + card.set + '|[' + (card.cn||'') + ']';
+      return card.qty + ' ' + card.name;
+    }
+    if(style === 'setparen'){
+      if(keepPrint && card.set) return card.qty + ' ' + card.name + ' (' + card.set + ')' + (card.cn ? ' ' + card.cn : '');
+      return card.qty + ' ' + card.name;
+    }
+    return card.qty + ' ' + card.name;
+  }
+
+  function buildForge(parsed, keepPrint, includeSideboard, includeMetadata, deckName){
+    const cmd = sortCards(parsed.cards.commander);
+    const main = sortCards(parsed.cards.main);
+    const side = includeSideboard ? sortCards([].concat(parsed.cards.sideboard, parsed.cards.considering)) : [];
+    let out = [];
+    if(includeMetadata){
+      out.push('[metadata]');
+      out.push('Name=' + (deckName || 'Unnamed Deck'));
+      out.push('');
+    }
+    if(cmd.length){
+      out.push('[Commander]');
+      cmd.forEach(c => out.push(formatLine(c,'forgepipe',keepPrint)));
+      out.push('');
+    }
+    out.push('[Main]');
+    main.forEach(c => out.push(formatLine(c,'forgepipe',keepPrint)));
+    if(side.length){
+      out.push('');
+      out.push('[Sideboard]');
+      side.forEach(c => out.push(formatLine(c,'forgepipe',keepPrint)));
+    }
+    return out.join('\n').trim() + '\n';
+  }
+
+  function buildPlain(parsed, keepPrint, includeSideboard){
+    const commander = parsed.cards.commander;
+    const rest = includeSideboard
+      ? [].concat(parsed.cards.main, parsed.cards.sideboard, parsed.cards.considering)
+      : parsed.cards.main.slice();
+    const basics = rest.filter(c => BASIC_LANDS.has(c.name.toLowerCase()));
+    const nonBasics = rest.filter(c => !BASIC_LANDS.has(c.name.toLowerCase()));
+    const all = [].concat(commander, sortCards(nonBasics), sortCards(basics));
+    return all.map(c => formatLine(c, 'setparen', keepPrint)).join('\n') + '\n';
+  }
+
+  const $ = id => document.getElementById(id);
+  const inputEl = $('input');
+  const outputEl = $('output');
+  const summaryEl = $('summary');
+  const commanderRow = $('commanderRow');
+  const commanderSelect = $('commanderSelect');
+  const warningsBox = $('warningsBox');
+  const warningsText = $('warningsText');
+  const deckNameInput = $('deckNameInput');
+  const downloadBtn = $('downloadBtn');
+  const copiedMsg = $('copiedMsg');
+  const dckGroup = $('dckGroup');
+
+  let lastParsed = null;
+  let lastFormat = loadSetting('lastFormat', 'plain');
+  let manualCommanderIdx = null;
+
+  // restore persisted settings
+  $('optKeepPrint').checked = loadSetting('keepPrint', true);
+  $('optIncludeSideboard').checked = loadSetting('includeSideboard', true);
+  const savedTheme = loadSetting('theme', 'light');
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  $('themeToggle').textContent = savedTheme === 'dark' ? '☀' : '🌙';
+  document.querySelectorAll('.fmt-btn').forEach(b => b.classList.toggle('active', b.dataset.fmt === lastFormat));
+
+  function getOpts(){
+    return {
+      keepPrint: $('optKeepPrint').checked,
+      includeSideboard: $('optIncludeSideboard').checked
+    };
+  }
+
+  function runParse(){
+    const opts = getOpts();
+    const text = inputEl.value;
+    if(!text.trim()){
+      lastParsed = null;
+      summaryEl.textContent = '';
+      commanderRow.style.display = 'none';
+      warningsBox.style.display = 'none';
+      outputEl.value = '';
+      updateDownloadState();
+      return;
+    }
+
+    const base = parseDecklist(text);
+    const pool = [].concat(base.cards.commander, base.cards.main);
+
+    let selectedIdx = null;
+    if(manualCommanderIdx === 'none'){
+      selectedIdx = null;
+    } else if(typeof manualCommanderIdx === 'number' && pool[manualCommanderIdx]){
+      selectedIdx = manualCommanderIdx;
+    } else if(base.cards.commander.length){
+      selectedIdx = 0;
+    }
+
+    let cards = {
+      commander: [],
+      main: selectedIdx !== null ? pool.filter((c,i) => i !== selectedIdx) : pool.slice(),
+      sideboard: base.cards.sideboard,
+      considering: base.cards.considering
+    };
+    if(selectedIdx !== null) cards.commander = [pool[selectedIdx]];
+
+    const parsed = { cards: cards, deckName: base.deckName, unparsedLines: base.unparsedLines };
+    lastParsed = parsed;
+
+    const cCount = cards.commander.reduce((s,c)=>s+c.qty,0);
+    const mCount = cards.main.reduce((s,c)=>s+c.qty,0);
+    const sboardCount = cards.sideboard.reduce((s,c)=>s+c.qty,0) + cards.considering.reduce((s,c)=>s+c.qty,0);
+    const total = cCount + mCount;
+
+    let flagged = total !== 100 && total > 0;
+
+    let bits = [];
+    if(cCount) bits.push('<strong>' + cCount + '</strong> commander');
+    bits.push(flagged
+      ? '<strong class="flag-count" title="Commander decks are usually 100 cards total">' + mCount + '</strong> main'
+      : '<strong>' + mCount + '</strong> main');
+    if(sboardCount) bits.push('<strong>' + sboardCount + '</strong> sideboard' + (opts.includeSideboard ? '' : ' (excluded)'));
+    summaryEl.innerHTML = bits.join(' · ');
+
+    if(pool.length){
+      commanderRow.style.display = 'flex';
+      commanderSelect.innerHTML = '';
+      const noneOpt = document.createElement('option');
+      noneOpt.value = 'none';
+      noneOpt.textContent = 'None (no commander)';
+      commanderSelect.appendChild(noneOpt);
+      pool.forEach((c,i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = c.name;
+        commanderSelect.appendChild(opt);
+      });
+      commanderSelect.value = selectedIdx !== null ? String(selectedIdx) : 'none';
+    } else {
+      commanderRow.style.display = 'none';
+    }
+
+    if(parsed.unparsedLines.length){
+      warningsBox.style.display = 'block';
+      warningsText.textContent = parsed.unparsedLines.join('\n');
+    } else {
+      warningsBox.style.display = 'none';
+    }
+
+    generateOutput(lastFormat);
+  }
+
+  function updateDownloadState(){
+    const deckName = deckNameInput.value.trim();
+    downloadBtn.disabled = !(lastFormat === 'forge-dck' && deckName && lastParsed);
+  }
+
+  function generateOutput(fmt){
+    lastFormat = fmt;
+    saveSetting('lastFormat', fmt);
+    document.querySelectorAll('.fmt-btn').forEach(b => b.classList.toggle('active', b.dataset.fmt === fmt));
+    dckGroup.classList.toggle('show', fmt === 'forge-dck');
+    if(!lastParsed){ outputEl.value = ''; updateDownloadState(); return; }
+    const opts = getOpts();
+    const deckName = deckNameInput.value.trim();
+
+    if(fmt === 'forge-paste'){
+      outputEl.value = buildForge(lastParsed, opts.keepPrint, opts.includeSideboard, false, '');
+    } else if(fmt === 'forge-dck'){
+      outputEl.value = buildForge(lastParsed, opts.keepPrint, opts.includeSideboard, true, deckName);
+    } else if(fmt === 'plain'){
+      outputEl.value = buildPlain(lastParsed, opts.keepPrint, opts.includeSideboard);
+    }
+    updateDownloadState();
+  }
+
+  let debounceTimer;
+  inputEl.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(runParse, 250);
+  });
+
+  document.querySelectorAll('.convert-col .fmt-btn').forEach(btn => {
+    btn.addEventListener('click', () => generateOutput(btn.dataset.fmt));
+  });
+
+  $('optKeepPrint').addEventListener('change', () => { saveSetting('keepPrint', $('optKeepPrint').checked); runParse(); });
+  $('optIncludeSideboard').addEventListener('change', () => { saveSetting('includeSideboard', $('optIncludeSideboard').checked); runParse(); });
+
+  commanderSelect.addEventListener('change', () => {
+    const v = commanderSelect.value;
+    manualCommanderIdx = v === 'none' ? 'none' : parseInt(v, 10);
+    runParse();
+  });
+
+  deckNameInput.addEventListener('input', () => {
+    if(lastFormat === 'forge-dck') generateOutput('forge-dck');
+    else updateDownloadState();
+  });
+
+  $('copyBtn').addEventListener('click', () => {
+    const text = outputEl.value;
+    if(!text) return;
+    function showCopied(){
+      copiedMsg.classList.add('show');
+      setTimeout(() => copiedMsg.classList.remove('show'), 1500);
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(showCopied).catch(() => {
+        outputEl.select();
+        document.execCommand('copy');
+        showCopied();
+      });
+    } else {
+      outputEl.select();
+      document.execCommand('copy');
+      showCopied();
+    }
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    const deckName = deckNameInput.value.trim();
+    if(!deckName) return;
+    const safe = deckName.replace(/[^a-zA-Z0-9 _\-]/g, '').trim().replace(/\s+/g, '_') || 'deck';
+    const blob = new Blob([outputEl.value], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = safe + '.dck';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  $('themeToggle').addEventListener('click', () => {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    $('themeToggle').textContent = isDark ? '🌙' : '☀';
+    saveSetting('theme', next);
+  });
+})();
+</script>
+</body>
+</html>
