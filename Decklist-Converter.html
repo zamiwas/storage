@@ -402,7 +402,10 @@
       if(bm){
         inMetadata = false;
         let sec = detectHeader(line);
-        if(sec){ currentSection = sec; }
+        // Recognized card sections switch context; any other bracket header
+        // (e.g. [general]) is metadata-ish junk, so ignore its contents until
+        // a recognized section shows up.
+        currentSection = sec || null;
         continue;
       }
 
@@ -417,6 +420,8 @@
 
       let sec2 = detectHeader(line);
       if(sec2){ currentSection = sec2; continue; }
+
+      if(currentSection === null) continue;
 
       let parsed = parseCardLine(line);
       if(!parsed) continue;
@@ -462,6 +467,7 @@
     if(includeMetadata){
       out.push('[metadata]');
       out.push('Name=' + (deckName || 'Unnamed Deck'));
+      out.push('Deck Type=Constructed');
       out.push('');
     }
     if(cmd.length){
