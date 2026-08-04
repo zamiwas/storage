@@ -163,7 +163,7 @@
     display: flex; flex-direction: column; gap: 10px; width: 182px; min-width: 0;
   }
   .convert-box {
-    background: var(--box-bg); border-radius: 14px; padding: 18px 16px;
+    background: var(--box-bg); border: 1px solid var(--border-strong); border-radius: 14px; padding: 18px 16px;
     display: flex; flex-direction: column; gap: 10px;
   }
   .fmt-buttons {
@@ -226,7 +226,7 @@
         <div class="tooltip-box">
           Runs entirely in your browser — nothing is uploaded or sent anywhere.
           <ul>
-            <li>Paste from Moxfield, Archidekt, TappedOut, EDHREC, or Forge.</li>
+            <li>Paste from Moxfield, Archidekt, EDHREC, or Forge.</li>
             <li>Sections and commander are detected automatically; override the commander below the input.</li>
             <li>Single-slash and double-slash double-faced cards are normalized automatically.</li>
           </ul>
@@ -242,7 +242,7 @@
   <div class="layout">
     <div class="panel">
       <h2>Paste decklist</h2>
-      <textarea id="input" placeholder="Paste from Moxfield, Archidekt, TappedOut, EDHREC, or Forge…"></textarea>
+      <textarea id="input" placeholder="Paste from Moxfield, Archidekt, EDHREC, or Forge…"></textarea>
       <div class="summary" id="summary"></div>
       <div class="commander-row" id="commanderRow" style="display:none;">
         <span>Commander:</span>
@@ -669,7 +669,7 @@
   downloadBtn.addEventListener('click', () => {
     const deckName = deckNameInput.value.trim();
     if(!deckName) return;
-    const safe = deckName.replace(/[^a-zA-Z0-9 _\-]/g, '').trim().replace(/\s+/g, '_') || 'deck';
+    const safe = deckName.replace(/[<>:"/\\|?*]/g, '').trim() || 'deck';
     const blob = new Blob([outputEl.value], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
