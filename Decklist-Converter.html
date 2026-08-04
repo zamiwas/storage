@@ -3,25 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Decklist Converter</title>
+<title>MTG Deck Converter</title>
 <style>
   :root{
-    --bg: #d7dee8;
+    --bg: #c9d2e1;
     --panel: #ffffff;
-    --panel-alt: #eaeff6;
+    --panel-alt: #e2e6ee;
     --border: #c7cfdb;
     --border-strong: #a3aebf;
     --text: #1f2226;
     --text-muted: #565d6b;
-    --accent: #415db8;
-    --accent-hover: #344a92;
+    --accent: #3753a9;
+    --accent-hover: #2d448b;
     --accent-contrast: #ffffff;
     --flag-bg: #fbdde4;
     --flag-text: #99334d;
     --good: #2f8f52;
     --bad: #c23b3b;
-    --box-bg: #ebeff5;
-    --header-bg: #ffffff;
+    --box-bg: #e2e6ee;
+    --header-bg: #e2e6ee;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   html[data-theme="dark"]{
@@ -56,7 +56,7 @@
 
   header.top {
     background: var(--header-bg);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--border-strong);
   }
   .top-inner {
     max-width: 1200px; margin: 0 auto; padding: 18px 22px;
@@ -78,12 +78,15 @@
   }
   .tooltip-group:hover .info-icon, .tooltip-group:focus-within .info-icon { border-color: var(--accent); color: var(--accent); }
   .tooltip-box {
-    position: absolute; top: 32px; right: 0; width: 280px;
+    position: absolute; top: 32px; right: 0; width: 280px; max-width: calc(100vw - 40px);
     background: var(--panel); border: 1px solid var(--border-strong); border-radius: 10px;
     padding: 14px 16px; font-size: 0.9rem; color: var(--text);
     box-shadow: 0 10px 28px rgba(0,0,0,0.18);
     opacity: 0; visibility: hidden; transform: translateY(-4px);
     transition: opacity 0.12s ease, transform 0.12s ease; z-index: 40;
+  }
+  @media (max-width: 600px){
+    .tooltip-box { left: 0; right: auto; }
   }
   .tooltip-group:hover .tooltip-box, .tooltip-group:focus-within .tooltip-box {
     opacity: 1; visibility: visible; transform: translateY(0);
@@ -106,8 +109,8 @@
     .layout { grid-template-columns: 1fr; }
     .convert-col { width: 100% !important; align-items: center; }
     .convert-box { width: 100%; }
-    .fmt-buttons { flex-direction: row !important; width: 100% !important; }
-    .fmt-buttons .fmt-btn { flex: 1; }
+    .fmt-buttons { flex-direction: row !important; width: 100% !important; flex-wrap: wrap !important; justify-content: center; }
+    .fmt-buttons .fmt-btn { flex: 1 1 auto; min-width: 120px; }
     .mini-toggles { flex-direction: row !important; width: 100% !important; flex-wrap: wrap; justify-content: center; }
   }
 
@@ -182,7 +185,7 @@
   }
   .fmt-btn {
     background: var(--panel); border: 1.5px solid var(--border-strong); border-radius: 9px;
-    padding: 12px 14px; font-size: 0.97rem; cursor: pointer; color: var(--text); font-weight: 600;
+    padding: 9px 11px; font-size: 0.97rem; cursor: pointer; color: var(--text); font-weight: 600;
     text-align: center; white-space: nowrap;
   }
   .fmt-btn:hover { border-color: var(--accent); }
@@ -218,7 +221,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <h1>Decklist Converter</h1>
+    <h1>MTG Deck Converter</h1>
     <div class="header-right">
       <div class="tooltip-group" tabindex="0">
         <span class="label">Offline app</span>
@@ -271,7 +274,7 @@
 
     <div class="panel">
       <h2>Converted list</h2>
-      <textarea id="output" readonly placeholder="Choose a format to see the converted list here…"></textarea>
+      <textarea id="output" readonly placeholder="Your converted list will appear here."></textarea>
       <div class="output-footer">
         <div class="copy-row">
           <button class="btn-primary" id="copyBtn">Copy</button>
